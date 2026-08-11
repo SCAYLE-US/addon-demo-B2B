@@ -79,10 +79,14 @@ export default defineConfig(({ mode, command }) => {
         port,
         protocol: https ? 'https' : 'http',
     });
+    const isManifestBuild = command === 'build' && mode === 'manifest';
     const shadowDomExclusivePlugins = () => {
-        // Production builds emit the standalone SPA (ES modules); the
-        // shadow-DOM plugins only work with the legacy SystemJS output.
-        if (command === 'build' || env.PANEL_USE_SHADOW_DOM !== 'true') {
+        if (env.PANEL_USE_SHADOW_DOM !== 'true') {
+            return [];
+        }
+        // Only enabled for the manifest (SystemJS) build. The standalone SPA
+        // build emits ES modules and these plugins corrupt that output.
+        if (command === 'build' && !isManifestBuild) {
             return [];
         }
 
@@ -187,7 +191,23 @@ export default defineConfig(({ mode, command }) => {
             'process.env.NODE_ENV': `'${mode}'`
         },
 
-        build: {
+        build: isManifestBuild ? {
+            // Second pass: append manifest.js (SystemJS) to the standalone
+            // dist without wiping it.
+            emptyOutDir: false,
+            manifest: true,
+            outDir: path.resolve(__dirname, 'dist'),
+            rollupOptions: {
+                preserveEntrySignatures: 'strict',
+                input: {
+                    manifest: path.resolve(__dirname, 'src/manifest.ts'),
+                },
+                output: {
+                    entryFileNames: '[name].js',
+                    format: 'system',
+                },
+            },
+        } : {
             emptyOutDir: true,
             outDir: path.resolve(__dirname, 'dist'),
             rollupOptions: {

@@ -11,7 +11,7 @@
         "coverage": "vitest run --coverage",
         "typecheck": "vue-tsc --noEmit",
         "preview": "vite preview",
-        "build": "vite build",
+        "build": "vite build && vite build --mode manifest",
         "build:watch": "vite build --watch --mode development",
         "watch": "run-p build:watch preview",
         "generate:ssl": "bash -c ./server-ssl/generate-ssl.sh",
