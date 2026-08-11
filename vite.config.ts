@@ -106,7 +106,7 @@ export default defineConfig(({ mode, command }) => {
     }
 
     return {
-        base: serverUrl.href,
+        base: command === 'build' ? '/' : serverUrl.href,
 
         // vitest has an issue where
         // root option in test.root is ignored if this here is set
@@ -187,16 +187,10 @@ export default defineConfig(({ mode, command }) => {
 
         build: {
             emptyOutDir: true,
-            manifest: true,
             outDir: path.resolve(__dirname, 'dist'),
             rollupOptions: {
-                preserveEntrySignatures: 'strict',
                 input: {
-                    manifest: path.resolve(__dirname, 'src/manifest.ts'),
-                },
-                output: {
-                    entryFileNames: '[name].js',
-                    format: 'system',
+                    standalone: path.resolve(__dirname, 'src/index.html'),
                 },
             },
         },
