@@ -116,6 +116,8 @@ export default defineConfig(({ mode, command }) => {
         envPrefix: 'PANEL_',
         envDir: path.resolve(__dirname),
 
+        publicDir: path.resolve(__dirname, 'public'),
+
         server: {
             ...serverOptions,
 
