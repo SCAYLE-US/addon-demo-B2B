@@ -60,6 +60,9 @@ importers:
       dom-storage:
         specifier: ^2.1.0
         version: 2.1.0
+      esbuild:
+        specifier: ^0.15.9
+        version: 0.15.18
       eslint:
         specifier: ^8.27.0
         version: 8.57.1
