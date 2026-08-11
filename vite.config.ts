@@ -80,7 +80,9 @@ export default defineConfig(({ mode, command }) => {
         protocol: https ? 'https' : 'http',
     });
     const shadowDomExclusivePlugins = () => {
-        if (env.PANEL_USE_SHADOW_DOM !== 'true') {
+        // Production builds emit the standalone SPA (ES modules); the
+        // shadow-DOM plugins only work with the legacy SystemJS output.
+        if (command === 'build' || env.PANEL_USE_SHADOW_DOM !== 'true') {
             return [];
         }
 
