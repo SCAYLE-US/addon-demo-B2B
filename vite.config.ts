@@ -80,7 +80,7 @@ export default defineConfig(({ mode, command }) => {
     };
 
     const proxy: Record<string, ReturnType<typeof buildProxyEntry>> = {};
-    const adminProxy = buildProxyEntry(env.NUXT_STOREFRONT_API_HOST, '/proxy/admin');
+    const adminProxy = buildProxyEntry(env.NUXT_ADMIN_API_HOST, '/proxy/admin');
     const sapiProxy = buildProxyEntry(env.NUXT_STOREFRONT_SAPI_HOST, '/proxy/sapi');
     if (adminProxy) proxy['/proxy/admin'] = adminProxy;
     if (sapiProxy) proxy['/proxy/sapi'] = sapiProxy;

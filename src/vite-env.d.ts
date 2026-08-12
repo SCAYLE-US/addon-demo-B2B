@@ -9,8 +9,8 @@ declare module '*.vue' {
 }
 
 interface ImportMetaEnv {
-    readonly NUXT_STOREFRONT_API_HOST?: string;
-    readonly NUXT_STOREFRONT_API_TOKEN?: string;
+    readonly NUXT_ADMIN_API_HOST?: string;
+    readonly NUXT_ADMIN_API_TOKEN?: string;
     readonly NUXT_STOREFRONT_SAPI_HOST?: string;
     readonly NUXT_STOREFRONT_SAPI_TOKEN?: string;
 }

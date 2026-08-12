@@ -14,6 +14,9 @@ const SavedCartsPage = () => import('./pages/SavedCartsPage.vue');
 const UsersPage = () => import('./pages/UsersPage.vue');
 const CustomerSegmentsPage = () => import('./pages/CustomerSegmentsPage.vue');
 const CompaniesPage = () => import('./pages/CompaniesPage.vue');
+const UserCompaniesPage = () => import('./pages/UserCompaniesPage.vue');
+const UserCustomerGroupsPage = () => import('./pages/UserCustomerGroupsPage.vue');
+const UserCustomDataPage = () => import('./pages/UserCustomDataPage.vue');
 
 export type AddOnRoute = Omit<RouteRecordRaw, "meta"> & { meta: GroupRouteDefinition };
 
@@ -132,6 +135,54 @@ export const routes: AddOnRoute[] = [
             path: BASE_URL + '/users',
             sidebar: ADD_ON_ID,
             group: generateGroupName('b2b'),
+        }
+    },
+    {
+        path: '/users/companies',
+        component: UserCompaniesPage,
+        meta: {
+            id: 'users-companies',
+            name: {
+                'en': 'Manage Companies',
+                'de': 'Unternehmen verwalten'
+            },
+            icon: 'store',
+            path: BASE_URL + '/users/companies',
+            sidebar: ADD_ON_ID,
+            group: generateGroupName('b2b'),
+            location: { id: 'users', position: 'after' },
+        }
+    },
+    {
+        path: '/users/customer-groups',
+        component: UserCustomerGroupsPage,
+        meta: {
+            id: 'users-customer-groups',
+            name: {
+                'en': 'Manage Customer Groups',
+                'de': 'Kundengruppen verwalten'
+            },
+            icon: 'users',
+            path: BASE_URL + '/users/customer-groups',
+            sidebar: ADD_ON_ID,
+            group: generateGroupName('b2b'),
+            location: { id: 'users-companies', position: 'after' },
+        }
+    },
+    {
+        path: '/users/custom-data',
+        component: UserCustomDataPage,
+        meta: {
+            id: 'users-custom-data',
+            name: {
+                'en': 'Manage Custom Data',
+                'de': 'Benutzerdaten verwalten'
+            },
+            icon: 'data-table',
+            path: BASE_URL + '/users/custom-data',
+            sidebar: ADD_ON_ID,
+            group: generateGroupName('b2b'),
+            location: { id: 'users-customer-groups', position: 'after' },
         }
     },
     {

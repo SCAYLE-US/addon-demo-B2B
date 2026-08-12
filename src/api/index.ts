@@ -2,8 +2,8 @@ import { createApiClient, type ApiClient } from './client';
 
 const adminHost = import.meta.env.DEV
     ? `${__DEV_SERVER_ORIGIN__}/proxy/admin/`
-    : (import.meta.env.NUXT_STOREFRONT_API_HOST as string | undefined);
-const adminToken = import.meta.env.NUXT_STOREFRONT_API_TOKEN as string | undefined;
+    : (import.meta.env.NUXT_ADMIN_API_HOST as string | undefined);
+const adminToken = import.meta.env.NUXT_ADMIN_API_TOKEN as string | undefined;
 const sapiHost = import.meta.env.DEV
     ? `${__DEV_SERVER_ORIGIN__}/proxy/sapi/`
     : (import.meta.env.NUXT_STOREFRONT_SAPI_HOST as string | undefined);
@@ -14,10 +14,10 @@ let _storefrontApi: ApiClient | null = null;
 
 export const adminApi = (): ApiClient => {
     if (!_adminApi) {
-        if (!adminHost) throw new Error('NUXT_STOREFRONT_API_HOST is not set');
+        if (!adminHost) throw new Error('NUXT_ADMIN_API_HOST is not set');
         _adminApi = createApiClient({
             host: adminHost,
-            defaultHeaders: adminToken ? { Authorization: `Bearer ${adminToken}` } : {},
+            defaultHeaders: adminToken ? { 'X-Access-Token': adminToken } : {},
         });
     }
     return _adminApi;

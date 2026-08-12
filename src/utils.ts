@@ -28,6 +28,21 @@ export const getInitials = function (value: string) {
 
 export const firstLetterToUpper = (value: string) => value.slice(0, 1).toUpperCase() + value.slice(1);
 
+export const readStoredValues = (key: string): string[] => {
+    try {
+        const raw = localStorage.getItem(key);
+        if (!raw) return [];
+        const parsed = JSON.parse(raw);
+        return Array.isArray(parsed) ? parsed.map(String) : [];
+    } catch {
+        return [];
+    }
+};
+
+export const writeStoredValues = (key: string, values: string[]) => {
+    localStorage.setItem(key, JSON.stringify(values));
+};
+
 export const wrapInRef = <T>(refObject: Ref<T> | undefined, defaultValue: T): ComputedRef<T> => {
     if (refObject === undefined) {
         return computed(() => defaultValue);
