@@ -194,13 +194,14 @@
 </template>
 
 <script lang="ts">
-import { computed, defineComponent, onMounted, reactive, ref } from 'vue';
+import { computed, defineComponent, onMounted, reactive, ref, watch } from 'vue';
 import Breadcrumbs from '@/components/Breadcrumbs/Breadcrumbs.vue';
 import { adminApi, ApiError } from '@/api';
 
 const NULL_SENTINEL = '__null__';
 type PriceFilterField = 'countryCode' | 'currencyCode' | 'groupKey' | 'merchantReferenceKey' | 'promotionKey';
 const FILTER_FIELDS: PriceFilterField[] = ['countryCode', 'currencyCode', 'groupKey', 'merchantReferenceKey', 'promotionKey'];
+const STATE_STORAGE_KEY = 'addon-demo-b2b:price-lists-state';
 
 type Price = {
     key?: string;
@@ -231,6 +232,28 @@ type Product = {
 };
 
 type ProductsPayload = { entities?: Product[] } | Product[];
+
+type PersistedState = {
+    products: Product[];
+    filters: Record<PriceFilterField, string>;
+};
+
+const readState = (): PersistedState | null => {
+    try {
+        const raw = sessionStorage.getItem(STATE_STORAGE_KEY);
+        return raw ? (JSON.parse(raw) as PersistedState) : null;
+    } catch {
+        return null;
+    }
+};
+
+const writeState = (state: PersistedState) => {
+    try {
+        sessionStorage.setItem(STATE_STORAGE_KEY, JSON.stringify(state));
+    } catch {
+        // Quota exceeded or storage unavailable — silently ignore.
+    }
+};
 
 export default defineComponent({
     name: 'PriceListsPage',
@@ -336,6 +359,7 @@ export default defineComponent({
                     query: { with: 'variants.prices' },
                 });
                 products.value = Array.isArray(payload) ? payload : (payload.entities ?? []);
+                writeState({ products: products.value, filters: { ...filters } });
             } catch (e) {
                 products.value = [];
                 if (e instanceof ApiError) {
@@ -351,7 +375,29 @@ export default defineComponent({
             }
         };
 
-        onMounted(load);
+        watch(
+            filters,
+            () => {
+                if (products.value.length) {
+                    writeState({ products: products.value, filters: { ...filters } });
+                }
+            },
+            { deep: true },
+        );
+
+        onMounted(() => {
+            const cached = readState();
+            if (cached && cached.products?.length) {
+                products.value = cached.products;
+                for (const field of FILTER_FIELDS) {
+                    if (cached.filters && field in cached.filters) {
+                        filters[field] = cached.filters[field];
+                    }
+                }
+                return;
+            }
+            load();
+        });
 
         return {
             breadcrumbs,

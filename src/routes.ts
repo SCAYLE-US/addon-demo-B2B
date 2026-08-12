@@ -12,7 +12,6 @@ const TableListingDetail = () => import('./pages/TableListingDetail.vue');
 const ComponentsPage = () => import('./pages/ComponentsPage.vue');
 const SavedCartsPage = () => import('./pages/SavedCartsPage.vue');
 const UsersPage = () => import('./pages/UsersPage.vue');
-const CompaniesPage = () => import('./pages/CompaniesPage.vue');
 const UserCompaniesPage = () => import('./pages/UserCompaniesPage.vue');
 const UserCustomerGroupsPage = () => import('./pages/UserCustomerGroupsPage.vue');
 const UserCustomDataPage = () => import('./pages/UserCustomDataPage.vue');
@@ -127,21 +126,6 @@ export const routes: AddOnRoute[] = [
         }
     },
     {
-        path: '/users/companies',
-        component: UserCompaniesPage,
-        meta: {
-            id: 'users-companies',
-            name: {
-                'en': 'Manage Companies',
-                'de': 'Unternehmen verwalten'
-            },
-            icon: 'store',
-            path: BASE_URL + '/users/companies',
-            sidebar: null,
-            group: generateGroupName('b2b'),
-        }
-    },
-    {
         path: '/users/customer-groups',
         component: UserCustomerGroupsPage,
         meta: {
@@ -189,7 +173,7 @@ export const routes: AddOnRoute[] = [
     },
     {
         path: '/companies',
-        component: CompaniesPage,
+        component: UserCompaniesPage,
         meta: {
             id: 'companies',
             name: {

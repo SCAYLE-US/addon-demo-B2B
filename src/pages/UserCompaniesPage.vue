@@ -1,12 +1,12 @@
 <template>
   <Breadcrumbs
-    title="Manage Companies"
+    title="Manage Business Accounts"
     :breadcrumbs="breadcrumbs"
   />
 
   <div class="card">
     <div class="card-header">
-      Companies
+      Business Accounts
     </div>
     <div class="card-body">
       <div class="flex flex-wrap items-end gap-2 mb-4">
@@ -73,8 +73,7 @@ export default defineComponent({
     setup() {
         const breadcrumbs = [
             { title: 'B2B' },
-            { title: 'Users' },
-            { title: 'Companies' },
+            { title: 'Business Accounts' },
         ];
 
         const values = ref<string[]>([]);

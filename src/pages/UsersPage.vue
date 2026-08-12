@@ -1,6 +1,6 @@
 <template>
   <Breadcrumbs
-    title="Manage Users"
+    title="Manage Users/Accounts"
     :breadcrumbs="breadcrumbs"
   />
 
@@ -127,7 +127,19 @@ import { adminApi, ApiError } from '@/api';
 
 const STATE_STORAGE_KEY = 'addon-demo-b2b:users-page-state';
 
+type ShopRow = { key: string; name: string };
+type CountryRow = { countryCode: string };
+
+type CustomerRow = {
+    id: string | number;
+    email: string;
+    firstName: string;
+    lastName: string;
+};
+
 type PersistedState = {
+    shops: ShopRow[];
+    countries: CountryRow[];
     shopKey: string;
     countryCode: string;
     customers: CustomerRow[];
@@ -144,19 +156,11 @@ const readState = (): PersistedState | null => {
 };
 
 const writeState = (state: PersistedState) => {
-    sessionStorage.setItem(STATE_STORAGE_KEY, JSON.stringify(state));
-};
-
-const clearState = () => sessionStorage.removeItem(STATE_STORAGE_KEY);
-
-type ShopRow = { key: string; name: string };
-type CountryRow = { countryCode: string };
-
-type CustomerRow = {
-    id: string | number;
-    email: string;
-    firstName: string;
-    lastName: string;
+    try {
+        sessionStorage.setItem(STATE_STORAGE_KEY, JSON.stringify(state));
+    } catch {
+        // Quota exceeded — ignore.
+    }
 };
 
 type EntitiesPayload<T> = { entities?: T[]; data?: T[] } | T[];
@@ -186,11 +190,10 @@ export default defineComponent({
         const router = useRouter();
         const breadcrumbs = [
             { title: 'B2B' },
-            { title: 'Users' },
+            { title: 'Users/Accounts' },
         ];
 
         const subNav = [
-            { to: '/users/companies', label: 'Manage Companies' },
             { to: '/users/customer-groups', label: 'Manage Customer Groups' },
             { to: '/users/custom-data', label: 'Manage Custom Data' },
         ];
@@ -210,6 +213,17 @@ export default defineComponent({
         const error = ref<string | null>(null);
         const errorBody = ref<string | null>(null);
 
+        const saveState = () => {
+            writeState({
+                shops: shops.value,
+                countries: countries.value,
+                shopKey: shopKey.value,
+                countryCode: countryCode.value,
+                customers: customers.value,
+                requested: requested.value,
+            });
+        };
+
         const loadShops = async () => {
             shopsLoading.value = true;
             error.value = null;
@@ -220,6 +234,7 @@ export default defineComponent({
                     key: (s.key as string) ?? '',
                     name: (s.name as string) ?? '',
                 }));
+                saveState();
             } catch (e) {
                 shops.value = [];
                 formatError(e, error, errorBody);
@@ -239,6 +254,7 @@ export default defineComponent({
                 countries.value = toList(payload).map((c) => ({
                     countryCode: (c.countryCode as string) ?? '',
                 }));
+                saveState();
             } catch (e) {
                 countries.value = [];
                 formatError(e, error, errorBody);
@@ -252,7 +268,7 @@ export default defineComponent({
             countries.value = [];
             customers.value = [];
             requested.value = false;
-            clearState();
+            saveState();
             if (shopKey.value) {
                 loadCountries(shopKey.value);
             }
@@ -273,12 +289,7 @@ export default defineComponent({
                     firstName: (c.firstName as string) ?? '',
                     lastName: (c.lastName as string) ?? '',
                 }));
-                writeState({
-                    shopKey: shopKey.value,
-                    countryCode: countryCode.value,
-                    customers: customers.value,
-                    requested: true,
-                });
+                saveState();
             } catch (e) {
                 customers.value = [];
                 formatError(e, error, errorBody);
@@ -298,19 +309,22 @@ export default defineComponent({
             });
         };
 
-        const restoreState = async () => {
-            const state = readState();
-            if (!state?.shopKey) return;
-            shopKey.value = state.shopKey;
-            await loadCountries(state.shopKey);
-            if (state.countryCode) countryCode.value = state.countryCode;
-            if (state.customers?.length) customers.value = state.customers;
-            requested.value = state.requested ?? false;
-        };
-
         onMounted(async () => {
-            await loadShops();
-            await restoreState();
+            const cached = readState();
+            if (cached) {
+                shops.value = cached.shops ?? [];
+                countries.value = cached.countries ?? [];
+                shopKey.value = cached.shopKey ?? '';
+                countryCode.value = cached.countryCode ?? '';
+                customers.value = cached.customers ?? [];
+                requested.value = cached.requested ?? false;
+            }
+            if (!shops.value.length) {
+                await loadShops();
+            }
+            if (shopKey.value && !countries.value.length) {
+                await loadCountries(shopKey.value);
+            }
         });
 
         return {
