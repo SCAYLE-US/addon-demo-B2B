@@ -12,12 +12,12 @@ const TableListingDetail = () => import('./pages/TableListingDetail.vue');
 const ComponentsPage = () => import('./pages/ComponentsPage.vue');
 const SavedCartsPage = () => import('./pages/SavedCartsPage.vue');
 const UsersPage = () => import('./pages/UsersPage.vue');
-const CustomerSegmentsPage = () => import('./pages/CustomerSegmentsPage.vue');
 const CompaniesPage = () => import('./pages/CompaniesPage.vue');
 const UserCompaniesPage = () => import('./pages/UserCompaniesPage.vue');
 const UserCustomerGroupsPage = () => import('./pages/UserCustomerGroupsPage.vue');
 const UserCustomDataPage = () => import('./pages/UserCustomDataPage.vue');
 const CustomerDetailPage = () => import('./pages/CustomerDetailPage.vue');
+const PriceListsPage = () => import('./pages/PriceListsPage.vue');
 
 export type AddOnRoute = Omit<RouteRecordRaw, "meta"> & { meta: GroupRouteDefinition };
 
@@ -34,7 +34,7 @@ export const routes: AddOnRoute[] = [
             },
             icon: 'dashboard',
             path: BASE_URL + '/',
-            sidebar: ADD_ON_ID,
+            sidebar: null,
             group: generateGroupName('general'),
         }
     },
@@ -62,7 +62,7 @@ export const routes: AddOnRoute[] = [
             },
             icon: 'data-table',
             path: BASE_URL + '/table-listing',
-            sidebar: ADD_ON_ID,
+            sidebar: null,
             group: generateGroupName('general'),
         }
     },
@@ -77,6 +77,7 @@ export const routes: AddOnRoute[] = [
             },
             icon: 'search',
             path: BASE_URL + '/form',
+            sidebar: null,
             group: generateGroupName('general'),
         }
     },
@@ -91,6 +92,7 @@ export const routes: AddOnRoute[] = [
             },
             icon: 'warning',
             path: BASE_URL + '/alerts',
+            sidebar: null,
             group: generateGroupName('general'),
         }
     },
@@ -105,22 +107,8 @@ export const routes: AddOnRoute[] = [
             },
             icon: 'ufo',
             path: BASE_URL + '/components',
+            sidebar: null,
             group: generateGroupName('general'),
-        }
-    },
-    {
-        path: '/saved-carts',
-        component: SavedCartsPage,
-        meta: {
-            id: 'saved-carts',
-            name: {
-                'en': 'Manage Saved Carts',
-                'de': 'Gespeicherte Warenkörbe verwalten'
-            },
-            icon: 'basket',
-            path: BASE_URL + '/saved-carts',
-            sidebar: ADD_ON_ID,
-            group: generateGroupName('b2b'),
         }
     },
     {
@@ -129,8 +117,8 @@ export const routes: AddOnRoute[] = [
         meta: {
             id: 'users',
             name: {
-                'en': 'Manage Users',
-                'de': 'Benutzer verwalten'
+                'en': 'Manage Users/Account',
+                'de': 'Benutzer/Konto verwalten'
             },
             icon: 'users',
             path: BASE_URL + '/users',
@@ -200,31 +188,46 @@ export const routes: AddOnRoute[] = [
         }
     },
     {
-        path: '/customer-segments',
-        component: CustomerSegmentsPage,
-        meta: {
-            id: 'customer-segments',
-            name: {
-                'en': 'Manage Customer Segments',
-                'de': 'Kundensegmente verwalten'
-            },
-            icon: 'filter',
-            path: BASE_URL + '/customer-segments',
-            sidebar: ADD_ON_ID,
-            group: generateGroupName('b2b'),
-        }
-    },
-    {
         path: '/companies',
         component: CompaniesPage,
         meta: {
             id: 'companies',
             name: {
-                'en': 'Manage Companies',
-                'de': 'Unternehmen verwalten'
+                'en': 'Manage Business Accounts',
+                'de': 'Geschäftskonten verwalten'
             },
             icon: 'store',
             path: BASE_URL + '/companies',
+            sidebar: ADD_ON_ID,
+            group: generateGroupName('b2b'),
+        }
+    },
+    {
+        path: '/price-lists',
+        component: PriceListsPage,
+        meta: {
+            id: 'price-lists',
+            name: {
+                'en': 'Price Lists',
+                'de': 'Preislisten'
+            },
+            icon: 'data-table',
+            path: BASE_URL + '/price-lists',
+            sidebar: ADD_ON_ID,
+            group: generateGroupName('b2b'),
+        }
+    },
+    {
+        path: '/saved-carts',
+        component: SavedCartsPage,
+        meta: {
+            id: 'saved-carts',
+            name: {
+                'en': 'Manage Saved Carts',
+                'de': 'Gespeicherte Warenkörbe verwalten'
+            },
+            icon: 'basket',
+            path: BASE_URL + '/saved-carts',
             sidebar: ADD_ON_ID,
             group: generateGroupName('b2b'),
         }

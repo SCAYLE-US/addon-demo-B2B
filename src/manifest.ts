@@ -3,7 +3,7 @@
 import { config, RouteDefinition } from '@scayle/add-on-utils';
 import { AddOnRoute, routes } from './routes';
 import { GroupRouteDefinition } from './types';
-import { ADD_ON_ID, generateGroupName } from './utils';
+import { ADD_ON_ID } from './utils';
 
 const applyDefaultRouteProps = (routes: RouteDefinition[]) => routes
     .filter(route => (route as GroupRouteDefinition as { isGroup?: boolean }).isGroup || route.sidebar !== null)
@@ -30,15 +30,6 @@ const mappedRoutes = routes.map(originalRoute => {
 });
 
 const generalRoutes: GroupRouteDefinition[] = [
-    {
-        id: 'general-group',
-        name: {
-            'en': 'General',
-            'de': 'Allgemeines'
-        },
-        group: generateGroupName('general'),
-        isGroup: true,
-    },
     ...mappedRoutes
 ];
 
