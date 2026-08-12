@@ -10,6 +10,10 @@ const TableListing = () => import('./pages/TableListing.vue');
 const ProductsPage = () => import('./components/ProductsListing/ProductsPage.vue');
 const TableListingDetail = () => import('./pages/TableListingDetail.vue');
 const ComponentsPage = () => import('./pages/ComponentsPage.vue');
+const SavedCartsPage = () => import('./pages/SavedCartsPage.vue');
+const UsersPage = () => import('./pages/UsersPage.vue');
+const CustomerSegmentsPage = () => import('./pages/CustomerSegmentsPage.vue');
+const CompaniesPage = () => import('./pages/CompaniesPage.vue');
 
 export type AddOnRoute = Omit<RouteRecordRaw, "meta"> & { meta: GroupRouteDefinition };
 
@@ -98,6 +102,66 @@ export const routes: AddOnRoute[] = [
             icon: 'ufo',
             path: BASE_URL + '/components',
             group: generateGroupName('general'),
+        }
+    },
+    {
+        path: '/saved-carts',
+        component: SavedCartsPage,
+        meta: {
+            id: 'saved-carts',
+            name: {
+                'en': 'Manage Saved Carts',
+                'de': 'Gespeicherte Warenkörbe verwalten'
+            },
+            icon: 'basket',
+            path: BASE_URL + '/saved-carts',
+            sidebar: ADD_ON_ID,
+            group: generateGroupName('b2b'),
+        }
+    },
+    {
+        path: '/users',
+        component: UsersPage,
+        meta: {
+            id: 'users',
+            name: {
+                'en': 'Manage Users',
+                'de': 'Benutzer verwalten'
+            },
+            icon: 'users',
+            path: BASE_URL + '/users',
+            sidebar: ADD_ON_ID,
+            group: generateGroupName('b2b'),
+        }
+    },
+    {
+        path: '/customer-segments',
+        component: CustomerSegmentsPage,
+        meta: {
+            id: 'customer-segments',
+            name: {
+                'en': 'Manage Customer Segments',
+                'de': 'Kundensegmente verwalten'
+            },
+            icon: 'filter',
+            path: BASE_URL + '/customer-segments',
+            sidebar: ADD_ON_ID,
+            group: generateGroupName('b2b'),
+        }
+    },
+    {
+        path: '/companies',
+        component: CompaniesPage,
+        meta: {
+            id: 'companies',
+            name: {
+                'en': 'Manage Companies',
+                'de': 'Unternehmen verwalten'
+            },
+            icon: 'store',
+            path: BASE_URL + '/companies',
+            sidebar: ADD_ON_ID,
+            group: generateGroupName('b2b'),
         }
     },
 ];

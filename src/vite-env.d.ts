@@ -8,6 +8,13 @@ declare module '*.vue' {
   export default component
 }
 
+interface ImportMetaEnv {
+    readonly NUXT_STOREFRONT_API_HOST?: string;
+    readonly NUXT_STOREFRONT_API_TOKEN?: string;
+    readonly NUXT_STOREFRONT_SAPI_HOST?: string;
+    readonly NUXT_STOREFRONT_SAPI_TOKEN?: string;
+}
+
 // TODO: Could this be added to the add-on-utils and added automatically?
 // How does vue-router do it?
 declare module '@vue/runtime-core' {

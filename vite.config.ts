@@ -119,7 +119,7 @@ export default defineConfig(({ mode, command }) => {
         // @link: https://github.com/vitest-dev/vitest/issues/2050
         root: mode === 'test' ? path.resolve(__dirname) : path.resolve(__dirname, 'src'),
 
-        envPrefix: 'PANEL_',
+        envPrefix: ['PANEL_', 'NUXT_'],
         envDir: path.resolve(__dirname),
 
         publicDir: path.resolve(__dirname, 'public'),
