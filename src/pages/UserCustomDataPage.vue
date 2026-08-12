@@ -16,7 +16,7 @@
             v-model="newValue"
             type="text"
             class="form-control"
-            placeholder="Enter a custom data value"
+            placeholder="Enter a custom data name"
             @keydown.enter="addValue"
           />
         </label>
@@ -30,21 +30,84 @@
       </div>
 
       <ul
-        v-if="values.length"
+        v-if="items.length"
         class="divide-y"
       >
         <li
-          v-for="(value, index) in values"
+          v-for="(item, index) in items"
           :key="index"
-          class="py-2 flex items-center justify-between"
+          class="py-2"
         >
-          <span>{{ value }}</span>
-          <button
-            class="btn btn-sm"
-            @click="removeValue(index)"
-          >
-            Remove
-          </button>
+          <div class="flex items-center justify-between">
+            <span class="font-medium">{{ item.name }}</span>
+            <div class="flex gap-2">
+              <button
+                class="btn btn-sm"
+                @click="toggleEdit(index)"
+              >
+                {{ editingIndex === index ? 'Done' : 'Edit' }}
+              </button>
+              <button
+                class="btn btn-sm"
+                @click="removeValue(index)"
+              >
+                Remove
+              </button>
+            </div>
+          </div>
+          <div class="pl-4 mt-1 text-sm">
+            <div
+              v-if="valueKeys(item).length"
+            >
+              <span class="text-gray-500">Available values:</span>
+              <ul
+                :class="editingIndex === index ? 'pl-2' : 'list-disc pl-6'"
+              >
+                <li
+                  v-for="key in valueKeys(item)"
+                  :key="key"
+                  :class="editingIndex === index ? 'flex items-center justify-between py-1' : ''"
+                >
+                  <span>{{ key }}</span>
+                  <button
+                    v-if="editingIndex === index"
+                    class="btn btn-sm"
+                    @click="removeAvailableValue(index, key)"
+                  >
+                    Remove
+                  </button>
+                </li>
+              </ul>
+            </div>
+            <div
+              v-else
+              class="text-gray-500"
+            >
+              No available values yet.
+            </div>
+            <div
+              v-if="editingIndex === index"
+              class="flex flex-wrap items-end gap-2 mt-2"
+            >
+              <label class="label flex-1">
+                <span class="label-text">New Value</span>
+                <input
+                  v-model="newAvailableValue"
+                  type="text"
+                  class="form-control"
+                  placeholder="Enter an available value"
+                  @keydown.enter="addAvailableValue(index)"
+                />
+              </label>
+              <button
+                class="btn"
+                :disabled="!newAvailableValue.trim()"
+                @click="addAvailableValue(index)"
+              >
+                Add
+              </button>
+            </div>
+          </div>
         </li>
       </ul>
 
@@ -61,9 +124,42 @@
 <script lang="ts">
 import { defineComponent, onMounted, ref } from 'vue';
 import Breadcrumbs from '@/components/Breadcrumbs/Breadcrumbs.vue';
-import { readStoredValues, writeStoredValues } from '@/utils';
 
 const STORAGE_KEY = 'addon-demo-b2b:user-custom-data';
+
+type CustomDataItem = {
+    name: string;
+    availableValues: Record<string, unknown>;
+};
+
+const readItems = (): CustomDataItem[] => {
+    try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (!raw) return [];
+        const parsed = JSON.parse(raw);
+        if (!Array.isArray(parsed)) return [];
+        // Migrate legacy string entries to { name, availableValues } shape
+        return parsed.map((entry) => {
+            if (typeof entry === 'string') {
+                return { name: entry, availableValues: {} };
+            }
+            if (entry && typeof entry === 'object') {
+                return {
+                    name: String((entry as { name?: unknown }).name ?? ''),
+                    availableValues:
+                        (entry as { availableValues?: Record<string, unknown> }).availableValues ?? {},
+                };
+            }
+            return { name: String(entry), availableValues: {} };
+        });
+    } catch {
+        return [];
+    }
+};
+
+const writeItems = (items: CustomDataItem[]) => {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
+};
 
 export default defineComponent({
     name: 'UserCustomDataPage',
@@ -77,34 +173,85 @@ export default defineComponent({
             { title: 'Custom Data' },
         ];
 
-        const values = ref<string[]>([]);
+        const items = ref<CustomDataItem[]>([]);
         const newValue = ref('');
+        const editingIndex = ref<number | null>(null);
+        const newAvailableValue = ref('');
 
         const refresh = () => {
-            values.value = readStoredValues(STORAGE_KEY);
+            const loaded = readItems();
+            // Persist any migrations so the on-disk shape matches
+            writeItems(loaded);
+            items.value = loaded;
         };
 
         const addValue = () => {
             const trimmed = newValue.value.trim();
             if (!trimmed) return;
-            const current = readStoredValues(STORAGE_KEY);
-            writeStoredValues(STORAGE_KEY, [...current, trimmed]);
+            const current = readItems();
+            writeItems([...current, { name: trimmed, availableValues: {} }]);
             newValue.value = '';
             refresh();
         };
 
         const removeValue = (index: number) => {
-            const current = readStoredValues(STORAGE_KEY);
+            const current = readItems();
             const target = current[index];
-            if (target === undefined) return;
-            if (!window.confirm(`Are you sure you want to remove "${target}"?`)) return;
-            writeStoredValues(STORAGE_KEY, current.filter((_, i) => i !== index));
+            if (!target) return;
+            if (!window.confirm(`Are you sure you want to remove "${target.name}"?`)) return;
+            writeItems(current.filter((_, i) => i !== index));
+            if (editingIndex.value === index) {
+                editingIndex.value = null;
+                newAvailableValue.value = '';
+            }
             refresh();
         };
 
+        const toggleEdit = (index: number) => {
+            newAvailableValue.value = '';
+            editingIndex.value = editingIndex.value === index ? null : index;
+        };
+
+        const addAvailableValue = (index: number) => {
+            const trimmed = newAvailableValue.value.trim();
+            if (!trimmed) return;
+            const current = readItems();
+            const item = current[index];
+            if (!item) return;
+            item.availableValues = { ...(item.availableValues ?? {}), [trimmed]: true };
+            writeItems(current);
+            newAvailableValue.value = '';
+            refresh();
+        };
+
+        const removeAvailableValue = (index: number, key: string) => {
+            const current = readItems();
+            const item = current[index];
+            if (!item) return;
+            if (!window.confirm(`Are you sure you want to remove "${key}"?`)) return;
+            const { [key]: _removed, ...rest } = item.availableValues ?? {};
+            item.availableValues = rest;
+            writeItems(current);
+            refresh();
+        };
+
+        const valueKeys = (item: CustomDataItem) => Object.keys(item.availableValues ?? {});
+
         onMounted(refresh);
 
-        return { breadcrumbs, values, newValue, addValue, removeValue };
+        return {
+            breadcrumbs,
+            items,
+            newValue,
+            editingIndex,
+            newAvailableValue,
+            addValue,
+            removeValue,
+            toggleEdit,
+            addAvailableValue,
+            removeAvailableValue,
+            valueKeys,
+        };
     },
 });
 </script>
