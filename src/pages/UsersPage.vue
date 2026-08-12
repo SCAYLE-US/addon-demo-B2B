@@ -4,6 +4,17 @@
     :breadcrumbs="breadcrumbs"
   />
 
+  <nav class="flex gap-4 border-b mb-4">
+    <router-link
+      v-for="item in subNav"
+      :key="item.to"
+      :to="item.to"
+      class="py-2 px-1 border-b-2 border-transparent hover:text-primary hover:border-primary"
+    >
+      {{ item.label }}
+    </router-link>
+  </nav>
+
   <div class="card">
     <div class="card-header">
       Admin API — Customers
@@ -87,7 +98,8 @@
           <tr
             v-for="customer in customers"
             :key="customer.id"
-            class="border-b"
+            class="border-b cursor-pointer hover:bg-gray-50"
+            @click="goToCustomer(customer.id)"
           >
             <td class="py-2 pr-4">{{ customer.id }}</td>
             <td class="py-2 pr-4">{{ customer.email }}</td>
@@ -109,8 +121,33 @@
 
 <script lang="ts">
 import { defineComponent, onMounted, ref } from 'vue';
+import { useRouter } from 'vue-router';
 import Breadcrumbs from '@/components/Breadcrumbs/Breadcrumbs.vue';
 import { adminApi, ApiError } from '@/api';
+
+const STATE_STORAGE_KEY = 'addon-demo-b2b:users-page-state';
+
+type PersistedState = {
+    shopKey: string;
+    countryCode: string;
+    customers: CustomerRow[];
+    requested: boolean;
+};
+
+const readState = (): PersistedState | null => {
+    try {
+        const raw = sessionStorage.getItem(STATE_STORAGE_KEY);
+        return raw ? (JSON.parse(raw) as PersistedState) : null;
+    } catch {
+        return null;
+    }
+};
+
+const writeState = (state: PersistedState) => {
+    sessionStorage.setItem(STATE_STORAGE_KEY, JSON.stringify(state));
+};
+
+const clearState = () => sessionStorage.removeItem(STATE_STORAGE_KEY);
 
 type ShopRow = { key: string; name: string };
 type CountryRow = { countryCode: string };
@@ -146,9 +183,16 @@ export default defineComponent({
     components: { Breadcrumbs },
 
     setup() {
+        const router = useRouter();
         const breadcrumbs = [
             { title: 'B2B' },
             { title: 'Users' },
+        ];
+
+        const subNav = [
+            { to: '/users/companies', label: 'Manage Companies' },
+            { to: '/users/customer-groups', label: 'Manage Customer Groups' },
+            { to: '/users/custom-data', label: 'Manage Custom Data' },
         ];
 
         const shops = ref<ShopRow[]>([]);
@@ -208,6 +252,7 @@ export default defineComponent({
             countries.value = [];
             customers.value = [];
             requested.value = false;
+            clearState();
             if (shopKey.value) {
                 loadCountries(shopKey.value);
             }
@@ -228,6 +273,12 @@ export default defineComponent({
                     firstName: (c.firstName as string) ?? '',
                     lastName: (c.lastName as string) ?? '',
                 }));
+                writeState({
+                    shopKey: shopKey.value,
+                    countryCode: countryCode.value,
+                    customers: customers.value,
+                    requested: true,
+                });
             } catch (e) {
                 customers.value = [];
                 formatError(e, error, errorBody);
@@ -236,10 +287,35 @@ export default defineComponent({
             }
         };
 
-        onMounted(loadShops);
+        const goToCustomer = (id: string | number) => {
+            router.push({
+                name: 'customer-detail',
+                params: {
+                    shopKey: shopKey.value,
+                    countryCode: countryCode.value,
+                    id: String(id),
+                },
+            });
+        };
+
+        const restoreState = async () => {
+            const state = readState();
+            if (!state?.shopKey) return;
+            shopKey.value = state.shopKey;
+            await loadCountries(state.shopKey);
+            if (state.countryCode) countryCode.value = state.countryCode;
+            if (state.customers?.length) customers.value = state.customers;
+            requested.value = state.requested ?? false;
+        };
+
+        onMounted(async () => {
+            await loadShops();
+            await restoreState();
+        });
 
         return {
             breadcrumbs,
+            subNav,
             shops,
             countries,
             customers,
@@ -253,6 +329,7 @@ export default defineComponent({
             errorBody,
             onShopChange,
             loadCustomers,
+            goToCustomer,
         };
     },
 });

@@ -17,6 +17,7 @@ const CompaniesPage = () => import('./pages/CompaniesPage.vue');
 const UserCompaniesPage = () => import('./pages/UserCompaniesPage.vue');
 const UserCustomerGroupsPage = () => import('./pages/UserCustomerGroupsPage.vue');
 const UserCustomDataPage = () => import('./pages/UserCustomDataPage.vue');
+const CustomerDetailPage = () => import('./pages/CustomerDetailPage.vue');
 
 export type AddOnRoute = Omit<RouteRecordRaw, "meta"> & { meta: GroupRouteDefinition };
 
@@ -148,9 +149,8 @@ export const routes: AddOnRoute[] = [
             },
             icon: 'store',
             path: BASE_URL + '/users/companies',
-            sidebar: ADD_ON_ID,
+            sidebar: null,
             group: generateGroupName('b2b'),
-            location: { id: 'users', position: 'after' },
         }
     },
     {
@@ -164,9 +164,8 @@ export const routes: AddOnRoute[] = [
             },
             icon: 'users',
             path: BASE_URL + '/users/customer-groups',
-            sidebar: ADD_ON_ID,
+            sidebar: null,
             group: generateGroupName('b2b'),
-            location: { id: 'users-companies', position: 'after' },
         }
     },
     {
@@ -180,9 +179,24 @@ export const routes: AddOnRoute[] = [
             },
             icon: 'data-table',
             path: BASE_URL + '/users/custom-data',
-            sidebar: ADD_ON_ID,
+            sidebar: null,
             group: generateGroupName('b2b'),
-            location: { id: 'users-customer-groups', position: 'after' },
+        }
+    },
+    {
+        name: 'customer-detail',
+        path: '/customers/:shopKey/:countryCode/:id',
+        component: CustomerDetailPage,
+        meta: {
+            id: 'customer-detail',
+            name: {
+                'en': 'Customer Detail',
+                'de': 'Kundendetails'
+            },
+            icon: 'users',
+            path: BASE_URL + '/customers',
+            sidebar: null,
+            group: generateGroupName('b2b'),
         }
     },
     {

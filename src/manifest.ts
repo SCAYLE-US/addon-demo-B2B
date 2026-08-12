@@ -5,7 +5,9 @@ import { AddOnRoute, routes } from './routes';
 import { GroupRouteDefinition } from './types';
 import { ADD_ON_ID, generateGroupName } from './utils';
 
-const applyDefaultRouteProps = (routes: RouteDefinition[]) => routes.map(route => ({...route, sidebar: route.sidebar === null ? null : ADD_ON_ID}));
+const applyDefaultRouteProps = (routes: RouteDefinition[]) => routes
+    .filter(route => (route as GroupRouteDefinition as { isGroup?: boolean }).isGroup || route.sidebar !== null)
+    .map(route => ({...route, sidebar: route.sidebar === null ? null : ADD_ON_ID}));
 
 const mappedRoutes = routes.map(originalRoute => {
     const route = JSON.parse(JSON.stringify(originalRoute)) as AddOnRoute;

@@ -9,25 +9,36 @@
       Customer Groups
     </div>
     <div class="card-body">
-      <div class="flex flex-wrap items-end gap-2 mb-4">
+      <div class="flex flex-wrap items-end gap-2 mb-1">
         <label class="label flex-1">
           <span class="label-text">New Customer Group</span>
           <input
             v-model="newValue"
             type="text"
             class="form-control"
+            :class="{ '!border-red': hasSpaces }"
             placeholder="Enter a customer group name"
             @keydown.enter="addValue"
           />
         </label>
         <button
           class="btn"
-          :disabled="!newValue.trim()"
+          :disabled="!canAdd"
           @click="addValue"
         >
           Add Value
         </button>
       </div>
+      <p
+        v-if="hasSpaces"
+        class="text-xs text-red mb-4"
+      >
+        Customer Groups cannot have spaces. camelCaseNames are preferred.
+      </p>
+      <div
+        v-else
+        class="mb-4"
+      ></div>
 
       <ul
         v-if="values.length"
@@ -59,7 +70,7 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, onMounted, ref } from 'vue';
+import { computed, defineComponent, onMounted, ref } from 'vue';
 import Breadcrumbs from '@/components/Breadcrumbs/Breadcrumbs.vue';
 import { readStoredValues, writeStoredValues } from '@/utils';
 
@@ -80,15 +91,17 @@ export default defineComponent({
         const values = ref<string[]>([]);
         const newValue = ref('');
 
+        const hasSpaces = computed(() => /\s/.test(newValue.value));
+        const canAdd = computed(() => !!newValue.value.trim() && !hasSpaces.value);
+
         const refresh = () => {
             values.value = readStoredValues(STORAGE_KEY);
         };
 
         const addValue = () => {
-            const trimmed = newValue.value.trim();
-            if (!trimmed) return;
+            if (!canAdd.value) return;
             const current = readStoredValues(STORAGE_KEY);
-            writeStoredValues(STORAGE_KEY, [...current, trimmed]);
+            writeStoredValues(STORAGE_KEY, [...current, newValue.value]);
             newValue.value = '';
             refresh();
         };
@@ -104,7 +117,7 @@ export default defineComponent({
 
         onMounted(refresh);
 
-        return { breadcrumbs, values, newValue, addValue, removeValue };
+        return { breadcrumbs, values, newValue, hasSpaces, canAdd, addValue, removeValue };
     },
 });
 </script>
