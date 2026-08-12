@@ -91,36 +91,9 @@
         </button>
       </div>
       <div class="card-body">
-        <ul
-          v-if="customerGroups.length"
-          class="divide-y mb-4"
-        >
-          <li
-            v-for="(group, i) in customerGroups"
-            :key="i"
-            class="py-2 flex items-center justify-between"
-          >
-            <span>{{ group.display }}</span>
-            <button
-              v-if="editingGroups"
-              class="btn btn-sm"
-              :disabled="removingGroup === group.identifier"
-              @click="removeGroup(group.identifier)"
-            >
-              {{ removingGroup === group.identifier ? 'Removing…' : 'Remove' }}
-            </button>
-          </li>
-        </ul>
-        <div
-          v-else
-          class="alert alert-info mb-4"
-        >
-          This customer does not belong to any groups.
-        </div>
-
         <div
           v-if="editingGroups"
-          class="border-t pt-4"
+          class="border-b pb-4 mb-4"
         >
           <div class="flex flex-wrap items-end gap-2">
             <label class="label flex-1">
@@ -162,14 +135,141 @@
             >{{ groupErrorBody }}</pre>
           </div>
         </div>
+
+        <ul
+          v-if="customerGroups.length"
+          class="divide-y"
+        >
+          <li
+            v-for="(group, i) in customerGroups"
+            :key="i"
+            class="py-2 flex items-center justify-between"
+          >
+            <span>{{ group.display }}</span>
+            <button
+              v-if="editingGroups"
+              class="btn btn-sm"
+              :disabled="removingGroup === group.identifier"
+              @click="removeGroup(group.identifier)"
+            >
+              {{ removingGroup === group.identifier ? 'Removing…' : 'Remove' }}
+            </button>
+          </li>
+        </ul>
+        <div
+          v-else
+          class="alert alert-info"
+        >
+          This customer does not belong to any groups.
+        </div>
       </div>
     </div>
 
     <div class="card">
-      <div class="card-header">
-        Legacy Custom Data
+      <div class="card-header flex items-center justify-between">
+        <span>Legacy Custom Data</span>
+        <button
+          class="btn btn-sm"
+          @click="toggleLegacyEdit"
+        >
+          {{ editingLegacy ? 'Done' : 'Edit' }}
+        </button>
       </div>
       <div class="card-body">
+        <div
+          v-if="editingLegacy"
+          class="border-b pb-4 mb-4"
+        >
+          <div class="flex flex-wrap items-end gap-2">
+            <label class="label flex-1">
+              <span class="label-text">Add Custom Data Item</span>
+              <select
+                v-model="selectedLegacyName"
+                class="form-control"
+                :disabled="!availableLegacyNames.length"
+              >
+                <option value="">
+                  {{ availableLegacyNames.length ? 'Select an item' : 'No custom data in local storage' }}
+                </option>
+                <option
+                  v-for="name in availableLegacyNames"
+                  :key="name"
+                  :value="name"
+                  :disabled="pendingLegacyNames.includes(name)"
+                >
+                  {{ name }}{{ pendingLegacyNames.includes(name) ? ' (added)' : '' }}
+                </option>
+              </select>
+            </label>
+            <button
+              class="btn"
+              :disabled="!selectedLegacyName"
+              @click="addPendingLegacy"
+            >
+              Add
+            </button>
+          </div>
+
+          <div
+            v-if="pendingLegacyItems.length"
+            class="mt-4"
+          >
+            <div class="text-gray-500 text-sm mb-2">Pending additions:</div>
+            <ul class="divide-y">
+              <li
+                v-for="(item, i) in pendingLegacyItems"
+                :key="i"
+                class="py-2 grid grid-cols-[1fr_1fr_auto] gap-2 items-center"
+              >
+                <span class="font-medium">{{ item.name }}</span>
+                <select
+                  v-model="item.value"
+                  class="form-control"
+                  :disabled="!availableValuesFor(item.name).length"
+                >
+                  <option value="">
+                    {{ availableValuesFor(item.name).length ? 'Select a value' : 'No values defined' }}
+                  </option>
+                  <option
+                    v-for="v in availableValuesFor(item.name)"
+                    :key="v"
+                    :value="v"
+                  >
+                    {{ v }}
+                  </option>
+                </select>
+                <button
+                  class="btn btn-sm"
+                  @click="removePendingLegacy(i)"
+                >
+                  Remove
+                </button>
+              </li>
+            </ul>
+
+            <div class="mt-4 flex justify-end">
+              <button
+                class="btn"
+                :disabled="!canSaveLegacy || savingLegacy"
+                @click="saveLegacy"
+              >
+                {{ savingLegacy ? 'Saving…' : 'Save Changes' }}
+              </button>
+            </div>
+          </div>
+
+          <div
+            v-if="legacyError"
+            class="alert alert-error mt-2"
+          >
+            <div>{{ legacyError }}</div>
+            <pre
+              v-if="legacyErrorBody"
+              class="mt-2 whitespace-pre-wrap text-xs"
+            >{{ legacyErrorBody }}</pre>
+          </div>
+        </div>
+
         <dl
           v-if="legacyCustomDataEntries.length"
           class="grid grid-cols-2 gap-x-4 gap-y-2"
@@ -201,6 +301,36 @@ import { adminApi, ApiError } from '@/api';
 import { readStoredValues } from '@/utils';
 
 const CUSTOMER_GROUPS_STORAGE_KEY = 'addon-demo-b2b:user-customer-groups';
+const CUSTOM_DATA_STORAGE_KEY = 'addon-demo-b2b:user-custom-data';
+
+type CustomDataItem = {
+    name: string;
+    availableValues: Record<string, unknown>;
+};
+
+const readCustomDataItems = (): CustomDataItem[] => {
+    try {
+        const raw = localStorage.getItem(CUSTOM_DATA_STORAGE_KEY);
+        if (!raw) return [];
+        const parsed = JSON.parse(raw);
+        if (!Array.isArray(parsed)) return [];
+        return parsed
+            .map((entry): CustomDataItem | null => {
+                if (typeof entry === 'string') return { name: entry, availableValues: {} };
+                if (entry && typeof entry === 'object') {
+                    return {
+                        name: String((entry as { name?: unknown }).name ?? ''),
+                        availableValues:
+                            (entry as { availableValues?: Record<string, unknown> }).availableValues ?? {},
+                    };
+                }
+                return null;
+            })
+            .filter((v): v is CustomDataItem => !!v && !!v.name);
+    } catch {
+        return [];
+    }
+};
 
 type CustomerDetail = {
     id: number | string;
@@ -240,6 +370,14 @@ export default defineComponent({
         const removingGroup = ref<string | null>(null);
         const groupError = ref<string | null>(null);
         const groupErrorBody = ref<string | null>(null);
+
+        const editingLegacy = ref(false);
+        const customDataItems = ref<CustomDataItem[]>([]);
+        const selectedLegacyName = ref('');
+        const pendingLegacyItems = ref<Array<{ name: string; value: string }>>([]);
+        const savingLegacy = ref(false);
+        const legacyError = ref<string | null>(null);
+        const legacyErrorBody = ref<string | null>(null);
 
         const pageTitle = computed(() => {
             if (!customer.value) return 'Customer Detail';
@@ -354,6 +492,71 @@ export default defineComponent({
             }
         };
 
+        const availableLegacyNames = computed(() => customDataItems.value.map((i) => i.name));
+        const pendingLegacyNames = computed(() => pendingLegacyItems.value.map((p) => p.name));
+
+        const availableValuesFor = (name: string): string[] => {
+            const item = customDataItems.value.find((i) => i.name === name);
+            return item ? Object.keys(item.availableValues ?? {}) : [];
+        };
+
+        const toggleLegacyEdit = () => {
+            editingLegacy.value = !editingLegacy.value;
+            legacyError.value = null;
+            legacyErrorBody.value = null;
+            if (editingLegacy.value) {
+                customDataItems.value = readCustomDataItems();
+            } else {
+                pendingLegacyItems.value = [];
+                selectedLegacyName.value = '';
+            }
+        };
+
+        const addPendingLegacy = () => {
+            const name = selectedLegacyName.value;
+            if (!name) return;
+            if (pendingLegacyItems.value.some((p) => p.name === name)) return;
+            pendingLegacyItems.value.push({ name, value: '' });
+            selectedLegacyName.value = '';
+        };
+
+        const removePendingLegacy = (index: number) => {
+            pendingLegacyItems.value.splice(index, 1);
+        };
+
+        const canSaveLegacy = computed(
+            () => pendingLegacyItems.value.length > 0 && pendingLegacyItems.value.every((p) => !!p.value),
+        );
+
+        const saveLegacy = async () => {
+            if (!canSaveLegacy.value) return;
+            savingLegacy.value = true;
+            legacyError.value = null;
+            legacyErrorBody.value = null;
+            try {
+                const body: Record<string, string> = {};
+                pendingLegacyItems.value.forEach((p) => {
+                    body[p.name] = p.value;
+                });
+                const path = `shops/${encodeURIComponent(shopKey)}/countries/${encodeURIComponent(countryCode)}/customers/${encodeURIComponent(id)}/legacy-custom-data`;
+                await adminApi().put(path, { body });
+                pendingLegacyItems.value = [];
+                selectedLegacyName.value = '';
+                await load();
+            } catch (e) {
+                if (e instanceof ApiError) {
+                    legacyError.value = e.message;
+                    legacyErrorBody.value = typeof e.body === 'string' ? e.body : JSON.stringify(e.body, null, 2);
+                } else if (e instanceof Error) {
+                    legacyError.value = e.message;
+                } else {
+                    legacyError.value = 'Unknown error';
+                }
+            } finally {
+                savingLegacy.value = false;
+            }
+        };
+
         onMounted(load);
 
         return {
@@ -376,6 +579,20 @@ export default defineComponent({
             toggleGroupsEdit,
             addGroup,
             removeGroup,
+            editingLegacy,
+            selectedLegacyName,
+            pendingLegacyItems,
+            availableLegacyNames,
+            pendingLegacyNames,
+            availableValuesFor,
+            toggleLegacyEdit,
+            addPendingLegacy,
+            removePendingLegacy,
+            canSaveLegacy,
+            savingLegacy,
+            legacyError,
+            legacyErrorBody,
+            saveLegacy,
         };
     },
 });
