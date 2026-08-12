@@ -61,10 +61,30 @@ const generateFullURL =  ({ host, protocol, port }: { host: string; protocol: st
 }
 
 export default defineConfig(({ mode, command }) => {
-    const env = loadEnv(mode, process.cwd(), ['CONFIG_', 'PANEL_']);
+    const env = loadEnv(mode, process.cwd(), ['CONFIG_', 'PANEL_', 'NUXT_']);
     const host = env.CONFIG_SERVER_HOST || 'demo-add-on.cloud-panel.aboutyou.test';
     const https = getHttpsOptions();
     const port = Number(env.CONFIG_SERVER_PORT || 8082);
+
+    const buildProxyEntry = (rawHost: string | undefined, prefix: string) => {
+        if (!rawHost) return null;
+        const target = new URL(rawHost);
+        const basePath = target.pathname.replace(/\/$/, '');
+        const stripPrefix = new RegExp(`^${prefix}`);
+        return {
+            target: target.origin,
+            changeOrigin: true,
+            secure: false,
+            rewrite: (p: string) => basePath + p.replace(stripPrefix, ''),
+        };
+    };
+
+    const proxy: Record<string, ReturnType<typeof buildProxyEntry>> = {};
+    const adminProxy = buildProxyEntry(env.NUXT_STOREFRONT_API_HOST, '/proxy/admin');
+    const sapiProxy = buildProxyEntry(env.NUXT_STOREFRONT_SAPI_HOST, '/proxy/sapi');
+    if (adminProxy) proxy['/proxy/admin'] = adminProxy;
+    if (sapiProxy) proxy['/proxy/sapi'] = sapiProxy;
+
     const serverOptions = {
         cors: {
             allowedHeaders: '*',
@@ -73,6 +93,7 @@ export default defineConfig(({ mode, command }) => {
         https,
         host,
         port,
+        proxy,
     };
     const serverUrl = generateFullURL({
         host,
@@ -188,7 +209,8 @@ export default defineConfig(({ mode, command }) => {
         ],
 
         define: {
-            'process.env.NODE_ENV': `'${mode}'`
+            'process.env.NODE_ENV': `'${mode}'`,
+            __DEV_SERVER_ORIGIN__: JSON.stringify(serverUrl.origin),
         },
 
         build: isManifestBuild ? {

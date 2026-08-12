@@ -15,6 +15,8 @@ interface ImportMetaEnv {
     readonly NUXT_STOREFRONT_SAPI_TOKEN?: string;
 }
 
+declare const __DEV_SERVER_ORIGIN__: string;
+
 // TODO: Could this be added to the add-on-utils and added automatically?
 // How does vue-router do it?
 declare module '@vue/runtime-core' {
