@@ -16,6 +16,7 @@ const UserCompaniesPage = () => import('./pages/UserCompaniesPage.vue');
 const UserCustomerGroupsPage = () => import('./pages/UserCustomerGroupsPage.vue');
 const UserCustomDataPage = () => import('./pages/UserCustomDataPage.vue');
 const CustomerDetailPage = () => import('./pages/CustomerDetailPage.vue');
+const BusinessAccountDetailPage = () => import('./pages/BusinessAccountDetailPage.vue');
 const PriceListsPage = () => import('./pages/PriceListsPage.vue');
 
 export type AddOnRoute = Omit<RouteRecordRaw, "meta"> & { meta: GroupRouteDefinition };
@@ -187,6 +188,22 @@ export const routes: AddOnRoute[] = [
         }
     },
     {
+        name: 'business-account-detail',
+        path: '/companies/:index',
+        component: BusinessAccountDetailPage,
+        meta: {
+            id: 'business-account-detail',
+            name: {
+                'en': 'Business Account Detail',
+                'de': 'Geschäftskontodetails'
+            },
+            icon: 'store',
+            path: BASE_URL + '/companies',
+            sidebar: null,
+            group: generateGroupName('b2b'),
+        }
+    },
+    {
         path: '/price-lists',
         component: PriceListsPage,
         meta: {
@@ -207,8 +224,8 @@ export const routes: AddOnRoute[] = [
         meta: {
             id: 'saved-carts',
             name: {
-                'en': 'Manage Saved Carts',
-                'de': 'Gespeicherte Warenkörbe verwalten'
+                'en': 'Saved Carts',
+                'de': 'Gespeicherte Warenkörbe'
             },
             icon: 'basket',
             path: BASE_URL + '/saved-carts',

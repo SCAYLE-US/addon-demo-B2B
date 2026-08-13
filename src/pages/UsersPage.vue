@@ -1,8 +1,18 @@
 <template>
-  <Breadcrumbs
-    title="Manage Users/Accounts"
-    :breadcrumbs="breadcrumbs"
-  />
+  <div class="flex items-start justify-between">
+    <Breadcrumbs
+      title="Manage Users/Accounts"
+      :breadcrumbs="breadcrumbs"
+    />
+    <button
+      class="btn btn-sm flex items-center gap-1"
+      :disabled="refreshing"
+      @click="refresh"
+    >
+      <IconRefresh class="w-4 h-4" />
+      {{ refreshing ? 'Refreshing…' : 'Refresh' }}
+    </button>
+  </div>
 
   <nav class="flex gap-4 border-b mb-4">
     <router-link
@@ -82,50 +92,135 @@
         >{{ errorBody }}</pre>
       </div>
 
-      <table
-        v-if="customers.length"
-        class="w-full text-left border-collapse"
-      >
-        <thead>
-          <tr class="border-b">
-            <th class="py-2 pr-4">ID</th>
-            <th class="py-2 pr-4">Email</th>
-            <th class="py-2 pr-4">First Name</th>
-            <th class="py-2">Last Name</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr
-            v-for="customer in customers"
-            :key="customer.id"
-            class="border-b cursor-pointer hover:bg-gray-50"
-            @click="goToCustomer(customer.id)"
-          >
-            <td class="py-2 pr-4">{{ customer.id }}</td>
-            <td class="py-2 pr-4">{{ customer.email }}</td>
-            <td class="py-2 pr-4">{{ customer.firstName }}</td>
-            <td class="py-2">{{ customer.lastName }}</td>
-          </tr>
-        </tbody>
-      </table>
-
       <div
-        v-else-if="!loading && !error && requested"
-        class="alert alert-info"
+        v-if="customers.length && customDataColumns.length"
+        class="flex flex-wrap gap-3 mb-4"
       >
-        No customers returned.
+        <label
+          v-for="column in customDataColumns"
+          :key="column"
+          class="label"
+        >
+          <span class="label-text">{{ column }}</span>
+          <select
+            v-model="filters[column]"
+            class="form-control"
+          >
+            <option value="">All</option>
+            <option
+              v-for="opt in filterOptions[column] ?? []"
+              :key="opt.value"
+              :value="opt.value"
+            >
+              {{ opt.label }}
+            </option>
+          </select>
+        </label>
+      </div>
+
+      <div class="overflow-x-auto">
+        <table
+          v-if="filteredCustomers.length"
+          class="w-full text-left border-collapse text-sm"
+        >
+          <thead>
+            <tr class="border-b bg-gray-50">
+              <th class="py-2 pr-4">ID</th>
+              <th class="py-2 pr-4">Email</th>
+              <th class="py-2 pr-4">First Name</th>
+              <th
+                :class="customDataColumns.length ? 'py-2 pr-4' : 'py-2'"
+              >
+                Last Name
+              </th>
+              <th
+                v-for="(column, i) in customDataColumns"
+                :key="column"
+                :class="i === customDataColumns.length - 1 ? 'py-2' : 'py-2 pr-4'"
+              >
+                {{ column }}
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr
+              v-for="customer in filteredCustomers"
+              :key="customer.id"
+              class="border-b cursor-pointer hover:bg-gray-50"
+              @click="goToCustomer(customer.id)"
+            >
+              <td class="py-2 pr-4">{{ customer.id }}</td>
+              <td class="py-2 pr-4">{{ customer.email }}</td>
+              <td class="py-2 pr-4">{{ customer.firstName }}</td>
+              <td :class="customDataColumns.length ? 'py-2 pr-4' : 'py-2'">
+                {{ customer.lastName }}
+              </td>
+              <td
+                v-for="(column, i) in customDataColumns"
+                :key="column"
+                :class="i === customDataColumns.length - 1 ? 'py-2' : 'py-2 pr-4'"
+              >
+                {{ formatCustomValue(customer.legacyCustomData?.[column]) }}
+              </td>
+            </tr>
+          </tbody>
+        </table>
+
+        <div
+          v-else-if="customers.length"
+          class="alert alert-info"
+        >
+          No customers match the selected filters.
+        </div>
+
+        <div
+          v-else-if="!loading && !error && requested"
+          class="alert alert-info"
+        >
+          No customers returned.
+        </div>
       </div>
     </div>
   </div>
 </template>
 
 <script lang="ts">
-import { defineComponent, onMounted, ref } from 'vue';
+import { computed, defineComponent, onMounted, reactive, ref, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import Breadcrumbs from '@/components/Breadcrumbs/Breadcrumbs.vue';
+import IconRefresh from '~icons/panel/refresh';
 import { adminApi, ApiError } from '@/api';
 
 const STATE_STORAGE_KEY = 'addon-demo-b2b:users-page-state';
+const CUSTOM_DATA_STORAGE_KEY = 'addon-demo-b2b:user-custom-data';
+const NULL_SENTINEL = '__null__';
+
+type CustomDataItem = { name: string };
+
+const readCustomDataNames = (): string[] => {
+    try {
+        const raw = localStorage.getItem(CUSTOM_DATA_STORAGE_KEY);
+        if (!raw) return [];
+        const parsed = JSON.parse(raw);
+        if (!Array.isArray(parsed)) return [];
+        return parsed
+            .map((entry): string => {
+                if (typeof entry === 'string') return entry.trim();
+                if (entry && typeof entry === 'object') return String((entry as CustomDataItem).name ?? '').trim();
+                return '';
+            })
+            .filter(Boolean);
+    } catch {
+        return [];
+    }
+};
+
+const stringifyCustomValue = (value: unknown): string => {
+    if (value === null || value === undefined || value === '') return '';
+    if (Array.isArray(value)) return value.map((v) => stringifyCustomValue(v)).filter(Boolean).join(', ');
+    if (typeof value === 'object') return JSON.stringify(value);
+    return String(value);
+};
 
 type ShopRow = { key: string; name: string };
 type CountryRow = { countryCode: string };
@@ -135,6 +230,7 @@ type CustomerRow = {
     email: string;
     firstName: string;
     lastName: string;
+    legacyCustomData?: Record<string, unknown>;
 };
 
 type PersistedState = {
@@ -144,6 +240,7 @@ type PersistedState = {
     countryCode: string;
     customers: CustomerRow[];
     requested: boolean;
+    customDataFilters?: Record<string, string>;
 };
 
 const readState = (): PersistedState | null => {
@@ -184,7 +281,7 @@ const formatError = (e: unknown, errorRef: { value: string | null }, bodyRef: { 
 export default defineComponent({
     name: 'UsersPage',
 
-    components: { Breadcrumbs },
+    components: { Breadcrumbs, IconRefresh },
 
     setup() {
         const router = useRouter();
@@ -213,6 +310,66 @@ export default defineComponent({
         const error = ref<string | null>(null);
         const errorBody = ref<string | null>(null);
 
+        const customDataColumns = ref<string[]>([]);
+        const filters = reactive<Record<string, string>>({});
+
+        const syncFilterKeys = () => {
+            const columnSet = new Set(customDataColumns.value);
+            for (const key of Object.keys(filters)) {
+                if (!columnSet.has(key)) delete filters[key];
+            }
+            for (const col of customDataColumns.value) {
+                if (filters[col] === undefined) filters[col] = '';
+            }
+        };
+
+        const reloadCustomDataColumns = () => {
+            customDataColumns.value = readCustomDataNames();
+            syncFilterKeys();
+        };
+
+        const filterOptions = computed(() => {
+            const options: Record<string, Array<{ value: string; label: string }>> = {};
+            for (const column of customDataColumns.value) {
+                const seen = new Set<string>();
+                const entries: Array<{ value: string; label: string }> = [];
+                for (const customer of customers.value) {
+                    const raw = customer.legacyCustomData?.[column];
+                    const stringified = stringifyCustomValue(raw);
+                    const key = stringified === '' ? NULL_SENTINEL : stringified;
+                    if (seen.has(key)) continue;
+                    seen.add(key);
+                    entries.push({ value: key, label: key === NULL_SENTINEL ? '(none)' : stringified });
+                }
+                entries.sort((a, b) => {
+                    if (a.value === NULL_SENTINEL) return 1;
+                    if (b.value === NULL_SENTINEL) return -1;
+                    return a.label.localeCompare(b.label);
+                });
+                options[column] = entries;
+            }
+            return options;
+        });
+
+        const filteredCustomers = computed(() =>
+            customers.value.filter((customer) => {
+                for (const column of customDataColumns.value) {
+                    const selected = filters[column];
+                    if (!selected) continue;
+                    const raw = customer.legacyCustomData?.[column];
+                    const stringified = stringifyCustomValue(raw);
+                    const normalized = stringified === '' ? NULL_SENTINEL : stringified;
+                    if (normalized !== selected) return false;
+                }
+                return true;
+            }),
+        );
+
+        const formatCustomValue = (value: unknown): string => {
+            const str = stringifyCustomValue(value);
+            return str === '' ? '—' : str;
+        };
+
         const saveState = () => {
             writeState({
                 shops: shops.value,
@@ -221,8 +378,17 @@ export default defineComponent({
                 countryCode: countryCode.value,
                 customers: customers.value,
                 requested: requested.value,
+                customDataFilters: { ...filters },
             });
         };
+
+        watch(
+            filters,
+            () => {
+                if (customers.value.length) saveState();
+            },
+            { deep: true },
+        );
 
         const loadShops = async () => {
             shopsLoading.value = true;
@@ -268,6 +434,7 @@ export default defineComponent({
             countries.value = [];
             customers.value = [];
             requested.value = false;
+            for (const key of Object.keys(filters)) filters[key] = '';
             saveState();
             if (shopKey.value) {
                 loadCountries(shopKey.value);
@@ -282,12 +449,15 @@ export default defineComponent({
             requested.value = true;
             try {
                 const path = `shops/${encodeURIComponent(shopKey.value)}/countries/${encodeURIComponent(countryCode.value)}/customers`;
-                const payload = await adminApi().get<EntitiesPayload<Record<string, unknown>>>(path);
+                const payload = await adminApi().get<EntitiesPayload<Record<string, unknown>>>(path, {
+                    query: { with: 'legacyCustomData' },
+                });
                 customers.value = toList(payload).map((c) => ({
                     id: (c.id as string | number) ?? '',
                     email: (c.email as string) ?? '',
                     firstName: (c.firstName as string) ?? '',
                     lastName: (c.lastName as string) ?? '',
+                    legacyCustomData: (c.legacyCustomData as Record<string, unknown>) ?? undefined,
                 }));
                 saveState();
             } catch (e) {
@@ -309,7 +479,25 @@ export default defineComponent({
             });
         };
 
+        const refreshing = ref(false);
+        const refresh = async () => {
+            refreshing.value = true;
+            try {
+                reloadCustomDataColumns();
+                await loadShops();
+                if (shopKey.value) {
+                    await loadCountries(shopKey.value);
+                }
+                if (shopKey.value && countryCode.value) {
+                    await loadCustomers();
+                }
+            } finally {
+                refreshing.value = false;
+            }
+        };
+
         onMounted(async () => {
+            reloadCustomDataColumns();
             const cached = readState();
             if (cached) {
                 shops.value = cached.shops ?? [];
@@ -318,6 +506,11 @@ export default defineComponent({
                 countryCode.value = cached.countryCode ?? '';
                 customers.value = cached.customers ?? [];
                 requested.value = cached.requested ?? false;
+                if (cached.customDataFilters) {
+                    for (const [k, v] of Object.entries(cached.customDataFilters)) {
+                        if (k in filters) filters[k] = v;
+                    }
+                }
             }
             if (!shops.value.length) {
                 await loadShops();
@@ -344,6 +537,13 @@ export default defineComponent({
             onShopChange,
             loadCustomers,
             goToCustomer,
+            refreshing,
+            refresh,
+            customDataColumns,
+            filters,
+            filterOptions,
+            filteredCustomers,
+            formatCustomValue,
         };
     },
 });

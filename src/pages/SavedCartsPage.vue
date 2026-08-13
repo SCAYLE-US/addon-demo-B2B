@@ -1,6 +1,6 @@
 <template>
   <Breadcrumbs
-    title="Manage Saved Carts"
+    title="Saved Carts"
     :breadcrumbs="breadcrumbs"
   />
 
@@ -10,7 +10,7 @@
     </div>
     <div class="card-body">
       <div class="alert alert-info">
-        View, edit, and restore saved carts for B2B customers.
+        Coming soon — this feature is not yet available.
       </div>
     </div>
   </div>

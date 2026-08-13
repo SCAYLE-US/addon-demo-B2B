@@ -1,8 +1,18 @@
 <template>
-  <Breadcrumbs
-    title="Price Lists"
-    :breadcrumbs="breadcrumbs"
-  />
+  <div class="flex items-start justify-between">
+    <Breadcrumbs
+      title="Price Lists"
+      :breadcrumbs="breadcrumbs"
+    />
+    <button
+      class="btn btn-sm flex items-center gap-1"
+      :disabled="loading"
+      @click="refresh"
+    >
+      <IconRefresh class="w-4 h-4" />
+      {{ loading ? 'Refreshing…' : 'Refresh' }}
+    </button>
+  </div>
 
   <div class="card">
     <div class="card-header">
@@ -171,9 +181,9 @@
                     <td class="py-2 pr-4">
                       <span v-if="priceIndex === 0">Variant {{ variant.id }}</span>
                     </td>
-                    <td class="py-2 pr-4">{{ formatValue(price.price) }}</td>
-                    <td class="py-2 pr-4">{{ formatValue(price.oldPrice) }}</td>
-                    <td class="py-2 pr-4">{{ formatValue(price.recommendedRetailPrice) }}</td>
+                    <td class="py-2 pr-4">{{ formatCurrency(price.price, price.currencyCode) }}</td>
+                    <td class="py-2 pr-4">{{ formatCurrency(price.oldPrice, price.currencyCode) }}</td>
+                    <td class="py-2 pr-4">{{ formatCurrency(price.recommendedRetailPrice, price.currencyCode) }}</td>
                     <td class="py-2 pr-4">{{ formatValue(price.tax) }}</td>
                     <td class="py-2 pr-4">{{ formatValue(price.countryCode) }}</td>
                     <td class="py-2 pr-4">{{ formatValue(price.currencyCode) }}</td>
@@ -196,6 +206,7 @@
 <script lang="ts">
 import { computed, defineComponent, onMounted, reactive, ref, watch } from 'vue';
 import Breadcrumbs from '@/components/Breadcrumbs/Breadcrumbs.vue';
+import IconRefresh from '~icons/panel/refresh';
 import { adminApi, ApiError } from '@/api';
 
 const NULL_SENTINEL = '__null__';
@@ -258,7 +269,7 @@ const writeState = (state: PersistedState) => {
 export default defineComponent({
     name: 'PriceListsPage',
 
-    components: { Breadcrumbs },
+    components: { Breadcrumbs, IconRefresh },
 
     setup() {
         const breadcrumbs = [
@@ -350,6 +361,25 @@ export default defineComponent({
             return String(value);
         };
 
+        const formatCurrency = (cents: number | null | undefined, currencyCode: string | null | undefined): string => {
+            if (cents === null || cents === undefined) return '—';
+            const amount = cents / 100;
+            if (currencyCode) {
+                try {
+                    return new Intl.NumberFormat(undefined, {
+                        style: 'currency',
+                        currency: currencyCode,
+                    }).format(amount);
+                } catch {
+                    // fall through to plain formatting if the code isn't valid
+                }
+            }
+            return amount.toLocaleString(undefined, {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2,
+            });
+        };
+
         const load = async () => {
             loading.value = true;
             error.value = null;
@@ -410,6 +440,8 @@ export default defineComponent({
             filteredProducts,
             productName,
             formatValue,
+            formatCurrency,
+            refresh: load,
         };
     },
 });

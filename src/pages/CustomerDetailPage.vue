@@ -167,7 +167,7 @@
 
     <div class="card">
       <div class="card-header flex items-center justify-between">
-        <span>Legacy Custom Data</span>
+        <span>Custom Customer Attributes</span>
         <button
           class="btn btn-sm"
           @click="toggleLegacyEdit"
@@ -286,7 +286,52 @@
           v-else
           class="alert alert-info"
         >
-          No legacy custom data.
+          No custom customer attributes.
+        </div>
+      </div>
+    </div>
+
+    <div class="card mt-4">
+      <div class="card-header">
+        Approvals
+      </div>
+      <div class="card-body opacity-50 pointer-events-none select-none">
+        <div class="text-xs text-gray-500 italic mb-2">
+          Preview — no approval data yet.
+        </div>
+        <div class="overflow-x-auto">
+          <table class="w-full text-left border-collapse text-sm">
+            <thead>
+              <tr class="border-b bg-gray-50">
+                <th class="py-2 pr-4">Cart</th>
+                <th class="py-2 pr-4">Received</th>
+                <th class="py-2 pr-4">Status</th>
+                <th class="py-2">Notes</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr
+                v-for="row in previewApprovals"
+                :key="row.id"
+                class="border-b"
+              >
+                <td class="py-2 pr-4">
+                  <div class="font-medium">{{ row.cartName }}</div>
+                  <div class="text-xs text-gray-500">{{ row.cartId }}</div>
+                </td>
+                <td class="py-2 pr-4">{{ row.receivedAt }}</td>
+                <td class="py-2 pr-4">
+                  <span
+                    class="inline-block px-2 py-0.5 rounded text-xs font-medium"
+                    :class="statusClasses(row.status)"
+                  >
+                    {{ row.status }}
+                  </span>
+                </td>
+                <td class="py-2">{{ row.notes }}</td>
+              </tr>
+            </tbody>
+          </table>
         </div>
       </div>
     </div>
@@ -299,6 +344,9 @@ import { useRoute } from 'vue-router';
 import Breadcrumbs from '@/components/Breadcrumbs/Breadcrumbs.vue';
 import { adminApi, ApiError } from '@/api';
 import { readStoredValues } from '@/utils';
+import { readBusinessAccounts, type BusinessAccount } from '@/store/businessAccounts';
+
+const B2B_ACCOUNT_ID_FIELD = 'b2b_account_id';
 
 const CUSTOMER_GROUPS_STORAGE_KEY = 'addon-demo-b2b:user-customer-groups';
 const CUSTOM_DATA_STORAGE_KEY = 'addon-demo-b2b:user-custom-data';
@@ -373,6 +421,7 @@ export default defineComponent({
 
         const editingLegacy = ref(false);
         const customDataItems = ref<CustomDataItem[]>([]);
+        const businessAccounts = ref<BusinessAccount[]>([]);
         const selectedLegacyName = ref('');
         const pendingLegacyItems = ref<Array<{ name: string; value: string }>>([]);
         const savingLegacy = ref(false);
@@ -496,6 +545,9 @@ export default defineComponent({
         const pendingLegacyNames = computed(() => pendingLegacyItems.value.map((p) => p.name));
 
         const availableValuesFor = (name: string): string[] => {
+            if (name === B2B_ACCOUNT_ID_FIELD) {
+                return businessAccounts.value.map((a) => a.name);
+            }
             const item = customDataItems.value.find((i) => i.name === name);
             return item ? Object.keys(item.availableValues ?? {}) : [];
         };
@@ -506,6 +558,7 @@ export default defineComponent({
             legacyErrorBody.value = null;
             if (editingLegacy.value) {
                 customDataItems.value = readCustomDataItems();
+                businessAccounts.value = readBusinessAccounts();
             } else {
                 pendingLegacyItems.value = [];
                 selectedLegacyName.value = '';
@@ -557,6 +610,45 @@ export default defineComponent({
             }
         };
 
+        const previewApprovals = [
+            {
+                id: 1,
+                cartName: 'Q4 Restock Order',
+                cartId: 'cart_a91f',
+                receivedAt: '2026-08-11 09:42',
+                status: 'Pending',
+                notes: 'Awaiting manager sign-off',
+            },
+            {
+                id: 2,
+                cartName: 'Trade Show Samples',
+                cartId: 'cart_b204',
+                receivedAt: '2026-08-09 15:18',
+                status: 'Approved',
+                notes: 'Ship by end of week',
+            },
+            {
+                id: 3,
+                cartName: 'Retail Reorder — East',
+                cartId: 'cart_c7de',
+                receivedAt: '2026-08-08 11:05',
+                status: 'Rejected',
+                notes: 'Over quarterly budget',
+            },
+        ];
+
+        const statusClasses = (status: string) => {
+            switch (status) {
+                case 'Approved':
+                    return 'bg-green-100 text-green-800';
+                case 'Rejected':
+                    return 'bg-red-100 text-red-800';
+                case 'Pending':
+                default:
+                    return 'bg-yellow-100 text-yellow-800';
+            }
+        };
+
         onMounted(load);
 
         return {
@@ -593,6 +685,8 @@ export default defineComponent({
             legacyError,
             legacyErrorBody,
             saveLegacy,
+            previewApprovals,
+            statusClasses,
         };
     },
 });

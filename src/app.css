@@ -32,3 +32,30 @@
 .single-spa-container {
     --el-color-primary: #0dcc8d !important;
 }
+
+/**
+    Disable and gray out the Saved Carts sidebar item.
+    Targets any anchor pointing to the /saved-carts route (panel + standalone).
+ */
+a[href*="/saved-carts"],
+a[href*="/saved-carts"]:hover,
+a[href*="/saved-carts"]:focus,
+a[href*="/saved-carts"].active,
+a[href*="/saved-carts"].router-link-active,
+a[href*="/saved-carts"].router-link-exact-active {
+    opacity: 0.5;
+    pointer-events: none;
+    cursor: not-allowed;
+    color: #6b7280 !important;
+    background-color: transparent !important;
+    border-color: transparent !important;
+    box-shadow: none !important;
+}
+
+a[href*="/saved-carts"] *,
+a[href*="/saved-carts"]:hover *,
+a[href*="/saved-carts"].active *,
+a[href*="/saved-carts"].router-link-active * {
+    color: #6b7280 !important;
+    fill: currentColor !important;
+}
